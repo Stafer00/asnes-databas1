@@ -1,0 +1,115 @@
+
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <title>Åsnes Turskidor - Sökbar Databas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f4f4f4; cursor: pointer; }
+        input, select { margin: 8px 0; padding: 5px; }
+        .match { background-color: #d4edda; }
+        @media (max-width: 600px) {
+            table, thead, tbody, th, td, tr { display: block; }
+            td { border: none; padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <h2>Åsnes Turskidor – Sök med din vikt och längd</h2>
+
+    <label>Din vikt (kg):</label>
+    <input type="number" id="weight" placeholder="t.ex. 75">
+    <label>Din längd (cm):</label>
+    <input type="number" id="height" placeholder="t.ex. 180">
+    <button onclick="filterSkis()">Sök</button>
+    <button onclick="exportTableToCSV()">Exportera CSV</button>
+
+    <table id="skiTable">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">Modell</th>
+                <th onclick="sortTable(1)">Typ</th>
+                <th onclick="sortTable(2)">Längd (cm)</th>
+                <th onclick="sortTable(3)">Rek. vikt (kg)</th>
+                <th onclick="sortTable(4)">Rek. längd (cm)</th>
+                <th onclick="sortTable(5)">Terräng</th>
+                <th onclick="sortTable(6)">Stålkant</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Falketind 62</td><td>Topptur</td><td>176</td><td>60–85</td><td>165–185</td><td>Fjäll</td><td>Ja</td></tr>
+            <tr><td>Ingstad BC</td><td>Allround</td><td>200</td><td>70–95</td><td>175–190</td><td>Skog/Fjäll</td><td>Ja</td></tr>
+            <tr><td>Gamme 54</td><td>Snabb tur</td><td>190</td><td>65–90</td><td>170–185</td><td>Skog</td><td>Ja</td></tr>
+            <tr><td>Amundsen</td><td>Klassisk</td><td>195</td><td>60–85</td><td>170–185</td><td>Fjäll</td><td>Ja</td></tr>
+            <tr><td>Combat NATO</td><td>Militär</td><td>200</td><td>70–100</td><td>180–200</td><td>Allround</td><td>Ja</td></tr>
+            <tr><td>Breidablikk</td><td>Utan stålkant</td><td>195</td><td>60–90</td><td>170–190</td><td>Skog</td><td>Nej</td></tr>
+            <tr><td>Børge Ousland</td><td>Expedition</td><td>200</td><td>65–95</td><td>175–195</td><td>Fjäll</td><td>Ja</td></tr>
+        </tbody>
+    </table>
+
+    <script>
+        function parseRange(str) {
+            let [min, max] = str.split("–").map(s => parseInt(s.trim()));
+            return [min, max];
+        }
+
+        function filterSkis() {
+            let weight = parseInt(document.getElementById("weight").value);
+            let height = parseInt(document.getElementById("height").value);
+            let rows = document.querySelectorAll("#skiTable tbody tr");
+
+            rows.forEach(row => {
+                let weightRange = parseRange(row.cells[3].textContent);
+                let heightRange = parseRange(row.cells[4].textContent);
+                let matches = weight >= weightRange[0] && weight <= weightRange[1] &&
+                              height >= heightRange[0] && height <= heightRange[1];
+                row.style.display = matches ? "" : "none";
+                row.className = matches ? "match" : "";
+            });
+        }
+
+        function sortTable(n) {
+            let table = document.getElementById("skiTable");
+            let switching = true;
+            let dir = "asc";
+            while (switching) {
+                switching = false;
+                let rows = table.rows;
+                for (let i = 1; i < rows.length - 1; i++) {
+                    let x = rows[i].getElementsByTagName("TD")[n];
+                    let y = rows[i + 1].getElementsByTagName("TD")[n];
+                    let shouldSwitch = dir == "asc" ? x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()
+                                                    : x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase();
+                    if (shouldSwitch) {
+                        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                        switching = true;
+                        break;
+                    }
+                }
+                if (!switching && dir == "asc") { dir = "desc"; switching = true; }
+            }
+        }
+
+        function exportTableToCSV() {
+            let rows = document.querySelectorAll("table tr");
+            let csv = [];
+            rows.forEach(row => {
+                if (row.style.display !== "none") {
+                    let cols = row.querySelectorAll("td, th");
+                    let rowData = Array.from(cols).map(col => col.innerText.replace(/,/g, ""));
+                    csv.push(rowData.join(","));
+                }
+            });
+            let csvFile = new Blob([csv.join("\n")], {type: "text/csv"});
+            let downloadLink = document.createElement("a");
+            downloadLink.download = "asnes_skidor.csv";
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.click();
+        }
+    </script>
+</body>
+</html>
